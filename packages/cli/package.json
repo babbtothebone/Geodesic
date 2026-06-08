@@ -1,0 +1,35 @@
+{
+  "name": "@geodesic/cli",
+  "version": "1.1.0",
+  "private": false,
+  "description": "Geodesic CLI — deep-scan any repo from the terminal or CI. Architecture map, agent skill file, and scored gap report — locally, in minutes.",
+  "license": "MIT",
+  "homepage": "https://github.com/direwulfco/geodesic#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/direwulfco/geodesic"
+  },
+  "bugs": {
+    "url": "https://github.com/direwulfco/geodesic/issues"
+  },
+  "author": "Dire Wulf <info@direwulf.com>",
+  "bin": {
+    "geodesic": "./dist/index.js",
+    "geo": "./dist/index.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@geodesic/engine": "*",
+    "@geodesic/types": "*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}

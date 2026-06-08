@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability
+    url: https://github.com/direwulfco/geodesic/security/advisories/new
+    about: Report a security vulnerability privately. Do NOT open a public issue for security reports — see SECURITY.md.
+  - name: Question or Discussion
+    url: https://github.com/direwulfco/geodesic/discussions
+    about: Ask questions, share usage tips, or discuss ideas before filing a feature request.

@@ -1,0 +1,62 @@
+<idea-plugin>
+  <id>dev.geodesic.plugin</id>
+  <name>Geodesic</name>
+  <vendor email="info@direwulf.com" url="https://github.com/direwulfco/geodesic">Geodesic</vendor>
+  <description><![CDATA[
+    <b>Geodesic — Auto-Topology Agent</b><br><br>
+    AI-powered codebase topology analysis. Deep static analysis of your repositories
+    produces Architecture Maps, Skill Files, and Gap Reports — all scored and prioritized.
+    <br><br>
+    <ul>
+      <li>Architecture Map: full topology, layers, APIs, databases, auth patterns</li>
+      <li>Skill File: machine-readable context package for build agents</li>
+      <li>Gap Report: scored findings across 7 dimensions with P0–P3 prioritization</li>
+    </ul>
+    <br>
+    Supports Anthropic, OpenAI, Gemini, Azure OpenAI, and Ollama (local).
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow
+      id="Geodesic"
+      anchor="right"
+      factoryClass="dev.geodesic.plugin.toolwindow.GeodesicToolWindowFactory"
+      icon="/META-INF/geodesic.svg"
+    />
+
+    <applicationService
+      serviceInterface="dev.geodesic.plugin.settings.GeodesicSettings"
+      serviceImplementation="dev.geodesic.plugin.settings.GeodesicSettings"
+    />
+
+    <projectService
+      serviceInterface="dev.geodesic.plugin.toolwindow.GeodesicToolWindowService"
+      serviceImplementation="dev.geodesic.plugin.toolwindow.GeodesicToolWindowService"
+    />
+
+    <applicationConfigurable
+      parentId="tools"
+      instance="dev.geodesic.plugin.settings.GeodesicSettingsConfigurable"
+      id="dev.geodesic.plugin.settings.GeodesicSettingsConfigurable"
+      displayName="Geodesic"
+    />
+
+    <postStartupActivity
+      implementation="dev.geodesic.plugin.GeodesicStartup"
+    />
+  </extensions>
+
+  <actions>
+    <action
+      id="Geodesic.Analyze"
+      class="dev.geodesic.plugin.actions.AnalyzeAction"
+      text="Run Geodesic Analysis"
+      description="Analyze the current project with Geodesic"
+      icon="/META-INF/geodesic.svg"
+    >
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+  </actions>
+</idea-plugin>

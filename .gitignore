@@ -1,0 +1,74 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+*.js.map
+*.d.ts.map
+
+# Analysis output — never commit
+geodesic-findings/
+**/geodesic-findings/
+geodesic-attestation.jsonl
+**/geodesic-attestation.jsonl
+
+# Config and secrets — never commit
+.env
+.env.local
+.env.*.local
+.geodesic/config.json
+.geode/config.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.iml
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Crystal Store local cache
+crystals/
+
+# VS Code extension packaging
+*.vsix
+
+# JetBrains plugin build
+packages/jetbrains/.gradle/
+packages/jetbrains/build/
+
+# Internal development files — never publish
+CLAUDE.md
+LAWS.md
+BUILD_PLAN.md
+ARCHITECTURE.md
+specs/
+.claude/
+**/BUILD.md
+
+# Marketing — internal strategy, voice guide, launch drafts, outreach lists
+# Never publish. Holds competitive positioning and pre-launch copy.
+marketing/
+**/marketing/
+
+# Branding / WIP folder restructure scratch space — not for publish
+/Geodesic/
+
+# Machine-specific VS Code multi-root workspace files (per-user scratch)
+*.code-workspace
+
+# Internal build plan / phase docs — never publish
+build-plan/

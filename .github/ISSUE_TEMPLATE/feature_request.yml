@@ -1,0 +1,55 @@
+name: Feature Request
+description: Suggest an enhancement or new capability
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion. The clearer you can be about the problem you're trying to solve, the easier it is to scope the right solution.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the user-facing need, not the implementation. "I want to do X but Y is in the way."
+      placeholder: When I scan a monorepo with multiple package managers, the architecture map collapses everything into a single node and I can't tell where the boundaries are.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would the ideal behavior look like? UX details welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered
+      description: Workarounds, related features in other tools, or other ways to solve the same problem.
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface would this affect?
+      multiple: true
+      options:
+        - VS Code / Cursor extension
+        - JetBrains plugin
+        - CLI
+        - Engine REST API
+        - Crystal Store
+        - Output artifacts (architecture map / skill file / gap report)
+        - Provider adapters
+        - Documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Screenshots, mockups, links to related issues or external references.

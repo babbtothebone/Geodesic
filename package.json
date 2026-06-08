@@ -1,0 +1,29 @@
+{
+  "name": "geodesic",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/types",
+    "packages/engine",
+    "packages/vscode-ext",
+    "packages/cli"
+  ],
+  "scripts": {
+    "lint": "eslint packages/types/src packages/engine/src packages/cli/src packages/vscode-ext/src --ext .ts",
+    "typecheck": "tsc --build packages/types packages/engine packages/cli packages/vscode-ext",
+    "test": "vitest run",
+    "build": "tsc --build packages/types packages/engine packages/cli",
+    "clean": "tsc --build --clean packages/types packages/engine packages/cli packages/vscode-ext"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@typescript-eslint/eslint-plugin": "^8.19.0",
+    "@typescript-eslint/parser": "^8.19.0",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.19.0",
+    "vitest": "^2.1.8"
+  }
+}

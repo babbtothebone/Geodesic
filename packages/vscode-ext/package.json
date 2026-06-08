@@ -1,0 +1,160 @@
+{
+  "name": "geodesic-topo",
+  "displayName": "Geodesic Topo",
+  "description": "Deep-scan any repo. Get an architecture map, agent-ready skill file, and scored gap report \u2014 locally, in minutes.",
+  "version": "1.1.0",
+  "private": true,
+  "publisher": "direwulfco",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/direwulfco/geodesic"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "icon": "resources/icon.png",
+  "galleryBanner": {
+    "color": "#0D1117",
+    "theme": "dark"
+  },
+  "categories": [
+    "AI",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "cursor",
+    "claude",
+    "claude-code",
+    "antigravity",
+    "agent",
+    "ai-agent",
+    "codebase",
+    "architecture",
+    "topology",
+    "skill-file",
+    "gap-report",
+    "hipaa",
+    "privacy",
+    "local-first",
+    "ollama",
+    "anthropic",
+    "openai",
+    "gemini",
+    "audit",
+    "compliance"
+  ],
+  "bugs": {
+    "url": "https://github.com/direwulfco/geodesic/issues"
+  },
+  "homepage": "https://github.com/direwulfco/geodesic#readme",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/bundle.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "geodesic",
+          "title": "Geodesic",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "geodesic": [
+        {
+          "id": "geodesic.repos",
+          "name": "Repositories",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "geodesic.analyze",
+        "title": "Analyze Repository",
+        "category": "Geodesic",
+        "icon": "$(play)"
+      },
+      {
+        "command": "geodesic.addRepo",
+        "title": "Add Repository",
+        "category": "Geodesic",
+        "icon": "$(add)"
+      },
+      {
+        "command": "geodesic.removeRepo",
+        "title": "Remove Repository",
+        "category": "Geodesic",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "geodesic.configureProvider",
+        "title": "Configure AI Provider",
+        "category": "Geodesic",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "geodesic.syncCrystals",
+        "title": "Sync Crystal Store",
+        "category": "Geodesic",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "geodesic.openAttestation",
+        "title": "Open Attestation Chain",
+        "category": "Geodesic"
+      },
+      {
+        "command": "geodesic.runPreflight",
+        "title": "Check Dependencies (Preflight)",
+        "category": "Geodesic"
+      },
+      {
+        "command": "geodesic.resetWarnings",
+        "title": "Reset Suppressed Dependency Warnings",
+        "category": "Geodesic"
+      }
+    ],
+    "configuration": {
+      "title": "Geodesic",
+      "properties": {
+        "geodesic.outputDir": {
+          "type": "string",
+          "description": "Directory for analysis output. Defaults to a geodesic-findings/ folder created inside the analyzed repository.",
+          "scope": "resource"
+        },
+        "geodesic.autoStartEngine": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start the Geodesic engine when VS Code opens.",
+          "scope": "application"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "bundle": "node esbuild.mjs",
+    "bundle:prod": "node esbuild.mjs --production",
+    "package": "npm run bundle:prod && vsce package --no-dependencies",
+    "publish:marketplace": "npm run bundle:prod && vsce publish --no-dependencies",
+    "publish:openvsx": "npm run bundle:prod && ovsx publish --no-dependencies",
+    "publish:all": "npm run publish:marketplace && npm run publish:openvsx",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@geodesic/types": "*",
+    "@geodesic/engine": "*"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.0",
+    "ovsx": "^0.9.5"
+  }
+}

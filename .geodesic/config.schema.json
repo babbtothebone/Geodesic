@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://geodesic.dev/schema/v1/config.json",
+  "title": "Geodesic Configuration",
+  "description": "Configuration file for the Geodesic Auto-Topology Agent engine.",
+  "type": "object",
+  "required": ["provider", "analystId"],
+  "additionalProperties": false,
+  "properties": {
+    "provider": {
+      "type": "string",
+      "enum": ["anthropic", "openai", "gemini", "azure", "ollama"],
+      "description": "AI provider to use for synthesis."
+    },
+    "apiKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "API key for the selected provider. Not required for ollama."
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Model identifier to use. Uses provider default if omitted."
+    },
+    "analystId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Your identifier recorded in the attestation chain (email or full name)."
+    },
+    "crystalStoreRepo": {
+      "type": "string",
+      "pattern": "^[\\w.-]+/[\\w.-]+$",
+      "description": "GitHub repo slug for the shared Crystal Store (e.g. 'myorg/geodesic-crystals')."
+    },
+    "crystalStoreToken": {
+      "type": "string",
+      "minLength": 1,
+      "description": "GitHub Personal Access Token with repo read and write scope."
+    },
+    "outputDir": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Directory for analysis output. Defaults to geodesic-findings/ inside the analyzed repository."
+    },
+    "azure": {
+      "type": "object",
+      "description": "Required when provider is 'azure'.",
+      "required": ["endpoint", "deploymentName", "apiVersion"],
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "format": "uri",
+          "description": "Azure OpenAI resource endpoint URL."
+        },
+        "deploymentName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Azure deployment name (maps to model)."
+        },
+        "apiVersion": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Azure OpenAI API version (e.g. '2024-08-01-preview')."
+        },
+        "embeddingDeploymentName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Azure deployment name for embeddings. Falls back to local ONNX if omitted."
+        }
+      }
+    },
+    "ollama": {
+      "type": "object",
+      "description": "Optional configuration for Ollama local provider.",
+      "additionalProperties": false,
+      "properties": {
+        "baseUrl": {
+          "type": "string",
+          "format": "uri",
+          "default": "http://localhost:11434",
+          "description": "Ollama API base URL."
+        }
+      }
+    },
+    "advanced": {
+      "type": "object",
+      "description": "Advanced configuration options.",
+      "additionalProperties": false,
+      "properties": {
+        "extendedThinking": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable extended thinking on supported models (Anthropic Opus only). Increases cost significantly."
+        },
+        "noCrystalSync": {
+          "type": "boolean",
+          "default": false,
+          "description": "Skip GitHub Crystal Store sync. Use for air-gapped environments."
+        },
+        "maxConcurrentRepos": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3,
+          "description": "Maximum number of repos to analyze simultaneously."
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": { "provider": { "const": "azure" } }
+  },
+  "then": {
+    "required": ["azure", "apiKey"]
+  },
+  "else": {
+    "if": {
+      "properties": { "provider": { "const": "ollama" } }
+    },
+    "then": {
+      "not": { "required": ["apiKey"] }
+    },
+    "else": {
+      "required": ["apiKey"]
+    }
+  }
+}

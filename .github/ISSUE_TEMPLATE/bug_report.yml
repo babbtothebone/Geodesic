@@ -1,0 +1,107 @@
+name: Bug Report
+description: Something is broken or not behaving as documented
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a report. The more specific you can be, the faster we can fix it.
+
+        **Before filing:** if your report involves PHI/HIPAA scrubbing, the attestation chain, or any path where unscrubbed data could escape, **do not file a public issue** — see [SECURITY.md](../../SECURITY.md) for the private disclosure channel.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear, concise description of the bug.
+      placeholder: When I run `geodesic analyze`, the engine crashes after the Harvest phase with...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+      placeholder: The scan should complete and produce all three artifacts.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: A minimal sequence of steps to trigger the bug. Include repo size / language mix if relevant.
+      placeholder: |
+        1. Clone https://github.com/example/repo
+        2. Run `geodesic analyze .`
+        3. Observe error after phase X
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface are you using?
+      options:
+        - VS Code / Cursor extension
+        - Antigravity / VSCodium extension (OpenVSX)
+        - JetBrains plugin
+        - CLI (`geodesic analyze`)
+        - Engine REST API directly
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Geodesic version
+      description: From the marketplace listing or `geodesic --version`
+      placeholder: "1.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: AI provider configured
+      options:
+        - Anthropic (Claude)
+        - OpenAI (GPT)
+        - Google Gemini
+        - Azure OpenAI
+        - Ollama (local)
+        - Other / unknown
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Windows 11 / macOS 14.5 / Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      placeholder: "20.11.1"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / error output
+      description: |
+        Paste any relevant log output. The engine writes stderr to `~/.geodesic/engine-stderr.log`.
+        **Redact any real PHI/PII before pasting** — even though Geodesic should scrub it, your logs are public if you paste them here.
+      render: shell
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Screenshots, repository characteristics (monorepo? language mix? size in LOC?), anything else.
