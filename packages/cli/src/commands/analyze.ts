@@ -7,6 +7,7 @@ import {
   GEODESIC_VERSION,
   harvest,
   intercept,
+  uncertainDetectionsToReport,
   loadConfig,
   loadProvider,
   loadEchoProvider,
@@ -239,6 +240,12 @@ async function analyzeRepo(
     );
 
     // Stage 5: Write artifacts
+    // Pin GapReport.uncertainDetections to the scrubber's authoritative list,
+    // discarding whatever the AI model invented. Mirrors the same override in
+    // the engine HTTP pipeline (packages/engine/src/server/pipeline.ts) — both
+    // paths use the shared uncertainDetectionsToReport helper so they can never
+    // drift again.
+    synthesis.gapReport.uncertainDetections = uncertainDetectionsToReport(interceptResult.uncertainDetections);
     console.log('[geodesic] stage 5/6: writing artifacts…');
     const artifactPaths = writeArtifacts(synthesis, outputDir);
     console.log(`[geodesic]   architecture-map → ${artifactPaths.architectureMap}`);

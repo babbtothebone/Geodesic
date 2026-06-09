@@ -113,14 +113,14 @@ export function buildDatasourceAttestation(
     }
   }
 
-  return chain.records as DatasourceAttestationRecord[];
+  return chain.records;
 }
 
 export function writeDatasourceAttestation(
   filePath: string,
   records: DatasourceAttestationRecord[],
 ): DatasourceAttestationSummary {
-  writeChainFile(filePath, records as unknown as ReadonlyArray<Record<string, unknown>>);
+  writeChainFile(filePath, records as unknown as readonly Record<string, unknown>[]);
   return {
     recordCount: records.length,
     dbCount:           records.filter(r => r.kind === 'db').length,
@@ -128,6 +128,6 @@ export function writeDatasourceAttestation(
     sinkCount:         records.filter(r => r.kind === 'sink').length,
     envConnectionCount:records.filter(r => r.kind === 'env-connection').length,
     filePath,
-    tipHash: records.length === 0 ? null : records[records.length - 1]!.hash,
+    tipHash: records.length === 0 ? null : (records[records.length - 1]?.hash ?? null),
   };
 }

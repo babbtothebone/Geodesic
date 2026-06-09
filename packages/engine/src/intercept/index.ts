@@ -3,3 +3,4 @@ export { verifyPurity, type PurityResult } from './purity.js';
 export { AttestationChain, computeHash, readAttestationFile } from './attestation.js';
 export { detectInValue } from './detector.js';
 export { buildToken, generateRefId } from './tokenizer.js';
+export { uncertainDetectionsToReport } from './uncertain-to-report.js';

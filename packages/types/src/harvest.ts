@@ -232,6 +232,8 @@ export interface PiiCandidateLocation {
 
 // ─── Harvest Result ───────────────────────────────────────────────────────────
 
+import type { HarvestedSchema } from './schema-fidelity.js';
+
 export interface HarvestResult {
   meta: HarvestMeta;
   monorepoPackages: MonorepoPackage[];
@@ -248,4 +250,13 @@ export interface HarvestResult {
   cicd: CiCdInventory;
   tests: TestInventory;
   piiCandidateLocations: PiiCandidateLocation[];
+  /**
+   * Deep schema inventory (tables / columns / indexes / FKs) extracted from
+   * Prisma, raw SQL migrations, schema.rb, etc.
+   *
+   * Optional for backward compatibility — older serialized HarvestResults
+   * (e.g. from cached crystals) will not have this field. New code must
+   * tolerate `undefined` and treat it as "no schema discovered."
+   */
+  harvestedSchema?: HarvestedSchema;
 }

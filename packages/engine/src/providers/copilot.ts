@@ -133,13 +133,36 @@ function mapError(err: unknown): ProviderError {
   if (err instanceof BridgeHttpError) {
     return new ProviderError('copilot', toProviderErrorCode(err.code), err.message, err.retryable);
   }
-  if (err instanceof Error && (err.name === 'AbortError' || err.message.includes('ECONNREFUSED') || err.message.includes('fetch'))) {
-    return new ProviderError(
-      'copilot',
-      'NETWORK_ERROR',
-      `Copilot bridge unreachable: ${err.message}. Reload the VS Code window so the extension can restart the bridge.`,
-      true,
-    );
+  if (err instanceof Error) {
+    if (err.name === 'AbortError') {
+      return new ProviderError(
+        'copilot',
+        'NETWORK_ERROR',
+        'Copilot bridge request timed out. The model may be slow or unavailable; try again.',
+        true,
+      );
+    }
+    if (err.message.includes('ECONNREFUSED')) {
+      // Server really is gone — the only case where reloading actually helps.
+      return new ProviderError(
+        'copilot',
+        'NETWORK_ERROR',
+        `Copilot bridge is down (${err.message}). Reload the VS Code window so the extension can restart the bridge.`,
+        true,
+      );
+    }
+    if (err.message.toLowerCase().includes('fetch failed') || err.message.toLowerCase().includes('econnreset') || err.message.toLowerCase().includes('socket hang up')) {
+      // Transient transport error that survived the bridge client's retry loop.
+      // The bridge HTTP server is probably still up — don't tell the user to reload.
+      const cause = (err as { cause?: unknown }).cause;
+      const causeMsg = cause instanceof Error ? `: ${cause.message}` : (typeof cause === 'object' && cause !== null && 'code' in cause ? ` (${String(cause.code)})` : '');
+      return new ProviderError(
+        'copilot',
+        'NETWORK_ERROR',
+        `Copilot bridge transport error${causeMsg} after retries: ${err.message}. The bridge may be overloaded; reducing synthesis parallelism may help.`,
+        true,
+      );
+    }
   }
   return new ProviderError('copilot', 'UNKNOWN', err instanceof Error ? err.message : String(err), false);
 }

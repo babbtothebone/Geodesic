@@ -937,6 +937,38 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             void vscode.env.openExternal(vscode.Uri.parse(msg.url));
           }
           break;
+
+        case 'setupDocs': {
+          const docsClient = this.callbacks.getClient();
+          if (!docsClient) {
+            void vscode.window.showWarningMessage('Engine not running yet — please wait a moment and try again.');
+            break;
+          }
+          try {
+            const result = await docsClient.setupDocs(msg.repoPath);
+            const action = result.created ? 'Created' : 'Found';
+            const choice = await vscode.window.showInformationMessage(
+              `${action} transition-docs folder. Drop your exported docs in it, then click "Run Comparison".`,
+              'Open Folder',
+            );
+            if (choice === 'Open Folder') {
+              void vscode.env.openExternal(vscode.Uri.file(result.folderPath));
+            }
+            // Refresh so the button flips from "Set Up Docs Ingest" → "Run Comparison"
+            // once the user drops docs into the folder.
+            await this.pushState();
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            void vscode.window.showErrorMessage(`Set up docs failed: ${errMsg}`);
+          }
+          break;
+        }
+
+        case 'openDocsFolder':
+          if (msg.folderPath) {
+            void vscode.env.openExternal(vscode.Uri.file(msg.folderPath));
+          }
+          break;
       }
     });
 

@@ -51,6 +51,7 @@ const PII_SIGNALS: PiiSignal[] = [
 const SKIP_EXTENSIONS = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2',
   '.ttf', '.eot', '.mp4', '.mp3', '.zip', '.gz', '.tar', '.lock',
+  '.vsix', '.jar', '.war', '.dll', '.so', '.dylib', '.wasm', '.exe',
   '.map', '.min.js', '.min.css',
 ]);
 

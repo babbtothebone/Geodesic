@@ -3,7 +3,7 @@ import * as http from 'http';
 export interface EngineHealth { ok: boolean; version: string }
 export interface EngineJobResponse { jobId: string; status: string }
 
-function request<T>(port: number, method: string, path: string, body?: unknown): Promise<T> {
+function request<T>(port: number, token: string, method: string, path: string, body?: unknown): Promise<T> {
   return new Promise((resolve, reject) => {
     const payload = body ? JSON.stringify(body) : undefined;
     const options: http.RequestOptions = {
@@ -13,6 +13,10 @@ function request<T>(port: number, method: string, path: string, body?: unknown):
       method,
       headers: {
         'Content-Type': 'application/json',
+        // Every engine route except GET /health requires this header (see http-server.ts
+        // isAuthorized). Token is per-engine-launch and arrives via stdout when the
+        // extension spawns the engine subprocess.
+        'X-Geodesic-Token': token,
         ...(payload ? { 'Content-Length': String(Buffer.byteLength(payload)) } : {}),
       },
     };
@@ -39,42 +43,45 @@ function request<T>(port: number, method: string, path: string, body?: unknown):
 }
 
 export class EngineClient {
-  constructor(private readonly port: number) {}
+  // Token is per-engine-launch and must be threaded through every authenticated
+  // request. Read off the engine subprocess stdout by EngineManager (see TOKEN_PATTERN
+  // in engine-manager.ts) and handed to this client when the port becomes known.
+  constructor(private readonly port: number, private readonly token: string) {}
 
   health(): Promise<EngineHealth> {
-    return request<EngineHealth>(this.port, 'GET', '/health');
+    return request<EngineHealth>(this.port, this.token, 'GET', '/health');
   }
 
   getConfig(): Promise<unknown> {
-    return request<unknown>(this.port, 'GET', '/config');
+    return request<unknown>(this.port, this.token, 'GET', '/config');
   }
 
   testConnection(): Promise<{ healthy: boolean; latencyMs: number; error?: string }> {
-    return request(this.port, 'POST', '/config/test');
+    return request(this.port, this.token, 'POST', '/config/test');
   }
 
   listCrystals(): Promise<unknown[]> {
-    return request<unknown[]>(this.port, 'GET', '/crystals');
+    return request<unknown[]>(this.port, this.token, 'GET', '/crystals');
   }
 
   syncCrystals(): Promise<{ success: boolean; message: string }> {
-    return request(this.port, 'POST', '/crystals/sync');
+    return request(this.port, this.token, 'POST', '/crystals/sync');
   }
 
   docsStatus(repoPath: string): Promise<{ status: 'missing' | 'empty' | 'ready'; folderPath: string; repoPath: string }> {
-    return request(this.port, 'GET', `/docs/status?repo=${encodeURIComponent(repoPath)}`);
+    return request(this.port, this.token, 'GET', `/docs/status?repo=${encodeURIComponent(repoPath)}`);
   }
 
   setupDocs(repoPath: string): Promise<{ folderPath: string; created: boolean; status: 'missing' | 'empty' | 'ready' }> {
-    return request(this.port, 'POST', '/docs/setup', { repoPath });
+    return request(this.port, this.token, 'POST', '/docs/setup', { repoPath });
   }
 
   startAnalysis(repoPath: string, outputDir?: string): Promise<EngineJobResponse> {
-    return request<EngineJobResponse>(this.port, 'POST', '/analyze', { repoPath, outputDir });
+    return request<EngineJobResponse>(this.port, this.token, 'POST', '/analyze', { repoPath, outputDir });
   }
 
   getJob(jobId: string): Promise<unknown> {
-    return request<unknown>(this.port, 'GET', `/jobs/${jobId}`);
+    return request<unknown>(this.port, this.token, 'GET', `/jobs/${jobId}`);
   }
 
   pollJob(

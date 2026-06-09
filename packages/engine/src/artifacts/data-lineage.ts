@@ -76,8 +76,12 @@ export function buildDataLineage(harvest: HarvestResult, opts: BuildOpts = {}): 
   const importedBy = new Map<string, Set<string>>();
   for (const edge of harvest.importGraph.edges) {
     if (edge.isExternal) continue;
-    if (!importedBy.has(edge.to)) importedBy.set(edge.to, new Set());
-    importedBy.get(edge.to)!.add(edge.from);
+    let set = importedBy.get(edge.to);
+    if (!set) {
+      set = new Set();
+      importedBy.set(edge.to, set);
+    }
+    set.add(edge.from);
   }
 
   const coupled = new Set<string>(harvest.databases.schemaFiles);
@@ -171,7 +175,7 @@ export function renderDataLineageMermaid(graph: DataLineageGraph): string {
   graph.nodes.forEach((n, idx) => { aliasOf.set(n.id, `n${String(idx)}`); });
 
   for (const n of graph.nodes) {
-    const alias = aliasOf.get(n.id)!;
+    const alias = aliasOf.get(n.id) ?? n.id;
     let line = shape(n, alias);
     if (n.unreferenced) line += ':::unreferenced';
     lines.push(line);

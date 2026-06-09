@@ -238,8 +238,9 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     engineManager.onStatusChange(() => {
       const port = engineManager.port;
-      if (port) {
-        engineClient = new EngineClient(port);
+      const token = engineManager.token;
+      if (port !== null && token !== null) {
+        engineClient = new EngineClient(port, token);
       } else {
         engineClient = null;
       }

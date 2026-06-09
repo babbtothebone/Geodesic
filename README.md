@@ -126,7 +126,7 @@ Install directly from the [VS Code Marketplace](https://marketplace.visualstudio
 
 Or install from VSIX:
 ```bash
-code --install-extension geodesic-topo-1.1.0.vsix
+code --install-extension geodesic-topo-2.0.0.vsix
 ```
 
 The VSIX is self-contained — the analysis engine is bundled. No separate install required.

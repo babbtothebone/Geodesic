@@ -1,7 +1,7 @@
 export { GEODESIC_VERSION } from './version.js';
 
 export { harvest } from './harvester/index.js';
-export { intercept, verifyPurity, AttestationChain } from './intercept/index.js';
+export { intercept, verifyPurity, AttestationChain, uncertainDetectionsToReport } from './intercept/index.js';
 export type { ScrubContext, PurityResult } from './intercept/index.js';
 export { loadProvider, loadEchoProvider, loadConfig, localEmbed, normalizeTo1536 } from './providers/index.js';
 export {

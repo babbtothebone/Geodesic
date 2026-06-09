@@ -2,7 +2,7 @@
   "name": "geodesic-topo",
   "displayName": "Geodesic Topo",
   "description": "Deep-scan any repo. Get an architecture map, agent-ready skill file, and scored gap report \u2014 locally, in minutes.",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "private": true,
   "publisher": "direwulfco",
   "license": "MIT",

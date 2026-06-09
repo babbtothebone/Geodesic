@@ -35,18 +35,45 @@ function sanitizeDimension(d: unknown): unknown {
   };
 }
 
+/**
+ * Defensive sanitizer for the AI model's `uncertainDetections` JSON field.
+ *
+ * NOTE: in normal operation the engine pipeline AND the CLI both overwrite
+ * `gapReport.uncertainDetections` with the scrubber's authoritative list right
+ * before `writeArtifacts()` (see uncertainDetectionsToReport). This sanitizer
+ * is defense-in-depth — it ensures that if the override is ever bypassed (e.g.
+ * a future code path forgets to call it), the writer still cannot emit visibly
+ * broken rows like `Trigger: (empty)` / `Confidence: 0% (undefined)`.
+ *
+ * Rules:
+ *   - Drop the row entirely if `file` is missing OR `trigger` is empty (no
+ *     detection means nothing meaningful to surface to a human reviewer).
+ *   - Default every other field to a sentinel value the writer can render
+ *     without producing `undefined` literals in the markdown output.
+ */
 function sanitizeUncertainDetection(u: unknown): unknown {
   if (typeof u !== 'object' || u === null) return null;
   const obj = u as Record<string, unknown>;
-  if (typeof obj['file'] !== 'string') return null;
+  if (typeof obj['file'] !== 'string' || obj['file'].trim() === '') return null;
+  const trigger = typeof obj['trigger'] === 'string' ? obj['trigger'].trim() : '';
+  if (trigger === '') return null;
+  const confidenceRaw = typeof obj['confidence'] === 'string' ? obj['confidence'].toUpperCase() : '';
+  const confidence: 'UNCERTAIN' | 'LOW' = confidenceRaw === 'UNCERTAIN' ? 'UNCERTAIN' : 'LOW';
   return {
     ...obj,
-    file:              obj['file'],
-    lineStart:         typeof obj['lineStart']         === 'number' ? obj['lineStart']         : 0,
-    lineEnd:           typeof obj['lineEnd']           === 'number' ? obj['lineEnd']           : 0,
-    trigger:           typeof obj['trigger']           === 'string' ? obj['trigger']           : '',
-    confidencePct:     typeof obj['confidencePct']     === 'number' ? obj['confidencePct']     : 0,
-    recommendedAction: typeof obj['recommendedAction'] === 'string' ? obj['recommendedAction'] : '',
+    file:               obj['file'],
+    lineStart:          typeof obj['lineStart']         === 'number' ? obj['lineStart']         : 0,
+    lineEnd:            typeof obj['lineEnd']           === 'number' ? obj['lineEnd']           : 0,
+    isApproximateRange: typeof obj['isApproximateRange']=== 'boolean'? obj['isApproximateRange']: true,
+    trigger,
+    confidence,
+    confidencePct:      typeof obj['confidencePct']     === 'number' ? obj['confidencePct']     : 0,
+    attestationRef:     typeof obj['attestationRef']    === 'string' ? obj['attestationRef']    : '(model-generated, not in attestation chain)',
+    action:             typeof obj['action']            === 'string' ? obj['action']
+                       : typeof obj['recommendedAction']=== 'string' ? obj['recommendedAction']
+                       : 'Review manually — no recommended action supplied by synthesis.',
+    recommendedAction:  typeof obj['recommendedAction'] === 'string' ? obj['recommendedAction'] : '',
+    markedReviewed:     typeof obj['markedReviewed']    === 'boolean'? obj['markedReviewed']    : false,
   };
 }
 

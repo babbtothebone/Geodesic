@@ -23,6 +23,23 @@ export default tseslint.config(
     },
   },
   {
+    // Test files use idioms that production code shouldn't: `!` on freshly built
+    // mock values, `as any` on partial mocks, void arrow returns. Stay strict in
+    // src, relax in tests so suite signal stays useful.
+    files: ['**/__tests__/**/*.ts', '**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-confusing-void-expression': 'off',
+      '@typescript-eslint/require-await': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+    },
+  },
+  {
     ignores: [
       '**/dist/**',
       '**/node_modules/**',

@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import type { HarvestResult, GeodesicConfig, PhaseProgressEvent } from '@geodesic/types';
 import { harvest } from '../harvester/index.js';
-import { intercept } from '../intercept/index.js';
+import { intercept, uncertainDetectionsToReport } from '../intercept/index.js';
 import { loadProvider, loadEchoProvider } from '../providers/index.js';
 import { writeArtifacts } from '../artifacts/index.js';
 import {
@@ -296,6 +296,11 @@ async function runPipeline(jobId: string, opts: PipelineOptions): Promise<void> 
 
     // ─── Phase 7: Write artifacts to disk + Crystal Extraction ─────────────
     updateJobProgress(jobId, { status: 'writing', stage: 'Writing analysis artifacts…' });
+
+    // Pin GapReport.uncertainDetections to the scrubber's authoritative list, discarding
+    // whatever the AI model invented. See toReportShape() above for rationale.
+    synthesis.gapReport.uncertainDetections = uncertainDetectionsToReport(interceptResult.uncertainDetections);
+
     const artifactPaths = writeArtifacts(synthesis, outputDir);
     addSubtask(jobId, 'artifacts', `Written to ${path.basename(outputDir)}/`, outputDir);
 

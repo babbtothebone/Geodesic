@@ -30,7 +30,9 @@ vi.mock('vscode', () => {
 const SANDBOX_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'geodesic-bridge-test-'));
 process.env.HOME = SANDBOX_HOME;
 
-const { LmBridgeServer } = await import('../lm-bridge-server.js');
+// vi.mock('vscode', ...) above is hoisted by vitest to the top of the module,
+// so a plain static import here still sees the mock — no top-level await needed.
+import { LmBridgeServer } from '../lm-bridge-server.js';
 const LOCKFILE = path.join(SANDBOX_HOME, '.geodesic', 'bridge.json');
 
 afterEach(() => {

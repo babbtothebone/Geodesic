@@ -7,6 +7,7 @@ import type { LmBridgeServerInfo } from './lm-bridge-server.js';
 import { execSync } from 'child_process';
 
 const PORT_PATTERN = /GEODE_ENGINE_PORT=(\d+)/;
+const TOKEN_PATTERN = /GEODE_ENGINE_TOKEN=([a-f0-9]+)/;
 const STARTUP_TIMEOUT_MS = 15_000;
 
 // Heap size for the engine subprocess. medplum-scale repos can push past Node's default ceiling.
@@ -24,6 +25,10 @@ export const ENGINE_STDERR_LOG_PATH = engineStderrLogPath();
 export class EngineManager implements vscode.Disposable {
   private process: ChildProcess | null = null;
   private _port: number | null = null;
+  // Per-launch auth token emitted by the engine on stdout. Required for every HTTP
+  // call to the engine except /health. Captured alongside the port in the stdout
+  // parser below.
+  private _token: string | null = null;
   private _startPromise: Promise<void> | null = null;
   private _heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private _analysisInProgress = false;
@@ -36,6 +41,7 @@ export class EngineManager implements vscode.Disposable {
   readonly onCrash = this._onCrash.event;
 
   get port(): number | null { return this._port; }
+  get token(): string | null { return this._token; }
   get stderrTail(): string { return this._stderrTail; }
 
   private findEngineScript(context: vscode.ExtensionContext): string | null {
@@ -126,9 +132,13 @@ export class EngineManager implements vscode.Disposable {
 
       proc.stdout.on('data', (chunk: Buffer) => {
         const text = chunk.toString();
-        const match = PORT_PATTERN.exec(text);
-        if (match?.[1]) {
-          this._port = parseInt(match[1], 10);
+        const portMatch = PORT_PATTERN.exec(text);
+        if (portMatch?.[1]) this._port = parseInt(portMatch[1], 10);
+        const tokenMatch = TOKEN_PATTERN.exec(text);
+        if (tokenMatch?.[1]) this._token = tokenMatch[1];
+        // Resolve once we have both — the engine emits PORT then TOKEN on two
+        // separate writes, but `data` events may coalesce or arrive separately.
+        if (this._port !== null && this._token !== null) {
           clearTimeout(timeout);
           this._onStatusChange.fire(`Engine running on port ${String(this._port)}`);
           this._startHeartbeat(context);
@@ -159,6 +169,7 @@ export class EngineManager implements vscode.Disposable {
       proc.on('exit', (code) => {
         this.process = null;
         this._port = null;
+        this._token = null;
         clearTimeout(timeout);
         this._stopHeartbeat();
         this._onStatusChange.fire('Engine stopped');
@@ -245,6 +256,7 @@ export class EngineManager implements vscode.Disposable {
       this.process.kill('SIGTERM');
       this.process = null;
       this._port = null;
+      this._token = null;
     }
   }
 

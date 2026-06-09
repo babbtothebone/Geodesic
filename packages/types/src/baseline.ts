@@ -74,14 +74,29 @@ export type DriftEntityKind =
   | 'container'
   | 'storage'
   | 'route'
-  | 'edge';
+  | 'edge'
+  | 'schema-table'
+  | 'schema-column'
+  | 'schema-index';
 
 export type DriftKind =
-  | 'missing-in-code'      // baseline declares it, harvest didn't find it
-  | 'missing-in-baseline'  // harvest found it, baseline never declared it
-  | 'mismatch';            // both exist but differ on a key attribute
+  | 'missing-in-code'        // baseline declares it, harvest didn't find it
+  | 'missing-in-baseline'    // harvest found it, baseline never declared it
+  | 'missing-in-prod'        // dev schema declares it, prod snapshot doesn't have it
+  | 'missing-in-code-schema' // prod snapshot has it, no dev migration declares it
+  | 'type-changed'           // schema column type differs between dev and prod
+  | 'nullability-changed'    // schema column NOT NULL ↔ NULL between dev and prod
+  | 'default-changed'        // schema column default value differs between dev and prod
+  | 'mismatch';              // both exist but differ on a key attribute
 
 export type DriftSeverity = 'P0' | 'P1' | 'P2';
+
+/** Optional code-impact reference attached to a schema-drift finding. */
+export interface CodeImpactRef {
+  file: string;
+  line: number;
+  snippet: string;
+}
 
 export interface DriftFinding {
   entityKind: DriftEntityKind;
@@ -91,6 +106,14 @@ export interface DriftFinding {
   harvestedRef: string | null;
   detail: string;
   severity: DriftSeverity;
+  /**
+   * For schema-* drift findings: code locations that reference the affected
+   * table or column. Empty array if no references were found or scanning
+   * was skipped. Other drift kinds leave this undefined.
+   */
+  codeImpact?: CodeImpactRef[];
+  /** Human-actionable suggestion. Free-form, optional. */
+  recommendedAction?: string;
 }
 
 export interface DriftReport {

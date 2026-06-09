@@ -163,6 +163,13 @@ function walk(root: string, dir: string, out: string[]): void {
 }
 
 function readKnownGaps(folder: string): IngestedDocsBundle['knownGaps'] {
+  const fromIndex = readKnownGapsFromIndex(folder);
+  const fromUnreachable = readKnownGapsFromUnreachable(folder);
+  const seen = new Set(fromIndex.map(g => g.title));
+  return [...fromIndex, ...fromUnreachable.filter(g => !seen.has(g.title))];
+}
+
+function readKnownGapsFromIndex(folder: string): IngestedDocsBundle['knownGaps'] {
   const indexPath = path.join(folder, INDEX_FILE);
   if (!fs.existsSync(indexPath)) return [];
   try {
@@ -171,6 +178,74 @@ function readKnownGaps(folder: string): IngestedDocsBundle['knownGaps'] {
   } catch {
     return [];
   }
+}
+
+/**
+ * Parses `_unreachable.md` for a YAML-style list of blind-spot entries.
+ * Lines that do not match the `- key: value` / `  key: value` shape are
+ * ignored, so users can keep prose around the list. Only entries with both
+ * `title` and `reason` populated are returned.
+ */
+function readKnownGapsFromUnreachable(folder: string): IngestedDocsBundle['knownGaps'] {
+  const filePath = path.join(folder, UNREACHABLE_FILE);
+  if (!fs.existsSync(filePath)) return [];
+
+  let raw: string;
+  try { raw = fs.readFileSync(filePath, 'utf8'); }
+  catch { return []; }
+
+  const out: IngestedDocsBundle['knownGaps'] = [];
+  let current: { title?: string; reason?: string; owner?: string } | null = null;
+
+  const flush = (): void => {
+    if (current && current.title && current.reason) {
+      const entry: { title: string; reason: string; owner?: string } = {
+        title: current.title,
+        reason: current.reason,
+      };
+      if (current.owner) entry.owner = current.owner;
+      out.push(entry);
+    }
+    current = null;
+  };
+
+  const itemStart = /^-\s+([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.+?)\s*$/;
+  const itemField = /^\s+([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.+?)\s*$/;
+
+  for (const line of raw.split('\n')) {
+    if (!line.trim()) continue;
+    if (line.startsWith('#') || line.startsWith('>')) continue;
+
+    const startMatch = itemStart.exec(line);
+    if (startMatch) {
+      flush();
+      current = {};
+      assignKnownGapField(current, startMatch[1] ?? '', startMatch[2] ?? '');
+      continue;
+    }
+
+    if (current) {
+      const fieldMatch = itemField.exec(line);
+      if (fieldMatch) {
+        assignKnownGapField(current, fieldMatch[1] ?? '', fieldMatch[2] ?? '');
+        continue;
+      }
+      flush();
+    }
+  }
+  flush();
+  return out;
+}
+
+function assignKnownGapField(
+  target: { title?: string; reason?: string; owner?: string },
+  key: string,
+  value: string,
+): void {
+  const cleaned = value.replace(/^["'](.*)["']$/, '$1').trim();
+  if (key === 'title') target.title = cleaned;
+  if (key === 'reason') target.reason = cleaned;
+  if (key === 'owner') target.owner = cleaned;
 }
 
 function seedIndex(): Record<string, unknown> {

@@ -1,18 +1,38 @@
-src/
-node_modules/
+# === Source (bundled into dist/*.js by esbuild — no need to ship .ts) ===
+src/**
+**/__tests__/**
+**/*.test.*
+
+# === Build tooling (development-only) ===
+tsconfig.eslint.json
 tsconfig.json
 tsconfig.tsbuildinfo
 esbuild.mjs
 .vscodeignore
-**/*.ts
-**/*.map
+.gitignore
+node_modules/**
+
+# === TypeScript leftovers from `tsc --build` (esbuild bundles everything we need) ===
+# The package.json `package` script runs only esbuild, but earlier `pnpm build` runs
+# leave behind dozens of per-file .js / .d.ts / .map artifacts under dist/. They are
+# dead weight — only the four esbuild outputs (bundle.js, engine-start.js,
+# lm-bridge-server.js, preflight.js) are actually loaded at runtime.
+dist/**/*.d.ts
+dist/**/*.d.ts.map
+dist/**/*.js.map
 dist/engine-client.js
 dist/engine-manager.js
 dist/extension.js
 dist/results-panel.js
 dist/sidebar-provider.js
 dist/state.js
-!dist/bundle.js
-!dist/engine-start.js
+dist/__tests__/**
+
+# === Marketplace-only assets (huge GIFs used by README / marketplace page only) ===
+# These are referenced from the public README on GitHub / the marketplace listing.
+# They must NOT ship inside the .vsix — they would bloat install size by ~80 MB
+# and serve zero runtime purpose.
 resources/screenshots/*.gif
+
+# === Old VSIX artifacts (rollback safety nets — kept on disk, never shipped) ===
 *.vsix

@@ -68,7 +68,7 @@ export class ChainBuilder<T extends Record<string, unknown>> {
 
   /** Hash of the last record — pins the whole chain in one value. */
   tipHash(): string | null {
-    return this.records.length === 0 ? null : this.records[this.records.length - 1]!.hash;
+    return this.records.length === 0 ? null : (this.records[this.records.length - 1]?.hash ?? null);
   }
 }
 
@@ -101,7 +101,7 @@ export function verifyChainFile(filePath: string): ChainVerifyResult {
   for (let i = 0; i < lines.length; i++) {
     let parsed: Record<string, unknown>;
     try {
-      parsed = JSON.parse(lines[i]!) as Record<string, unknown>;
+      parsed = JSON.parse(lines[i] ?? '') as Record<string, unknown>;
     } catch {
       return { ok: false, recordsChecked: i, firstBrokenSeq: expectedSeq, reason: `line ${String(i + 1)}: not JSON` };
     }

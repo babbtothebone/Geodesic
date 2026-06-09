@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-09
+
+### Fixed
+- **LM bridge concurrency**: parallel `bridge.complete()` calls (arch-map + skill-file + gap-report integration phase) no longer fail on transient socket resets. The engine-side client now retries `ECONNRESET` / `socket hang up` / undici `UND_ERR_SOCKET` up to two times with exponential backoff (50 ms / 150 ms / 350 ms). Structured 4xx/5xx responses from the bridge are never retried.
+- **Copilot provider error mapping**: `mapError()` no longer instructs users to "reload the VS Code window" on every opaque `fetch failed`. Only true `ECONNREFUSED` (bridge actually gone) suggests reload; transient transport errors after retries surface a neutral "bridge may be overloaded" message. `AbortError` now maps to a distinct timeout message.
+- **LM bridge lockfile path**: resolved against the current `os.homedir()` on every call instead of cached at module load. Prevents stale-path writes when `$HOME` is mutated after import (debug-attach flows, shell re-init, sandboxed test environments).
+- **Docs ingest `_unreachable.md` parser**: `collectIngestedDocs()` now parses YAML-list `_unreachable.md` entries into `knownGaps`, merging with `_index.json` (index entries win on title collision). Closes the gap between scaffolded template and runtime behavior.
+
+### Changed
+- **VS Code extension repackaged as `geodesic-topo-2.0.0.vsix`**; install instruction in `README.md` updated accordingly.
+- All workspace package versions (`@geodesic/types`, `@geodesic/engine`, `@geodesic/cli`, `@geodesic/vscode-ext`) and the `GEODESIC_VERSION` constant bumped to `2.0.0` together: single source of truth in `packages/engine/src/version.ts`.
+
+### Internal
+- ESLint config gained a test-file override (`**/__tests__/**`, `**/*.test.ts`) relaxing `no-non-null-assertion`, `no-unsafe-*`, `no-confusing-void-expression`, `require-await`, `unbound-method`: patterns that are idiomatic in test code. Production rules stay strict.
+- VS Code extension typecheck cleanup: dropped invalid `(this as { _token })` cast (replaced with mutable `_token`); typed `catch` callback parameters as `unknown`; replaced top-level `await import()` in the bridge-server test with hoisted static import.
+- Removed unused type imports (`OpsSnapshotsBundle`, `HarvestedSchema`) from `packages/engine/src/synthesis/prompt-builder.ts`. Fixed useless `\[` escape in Prisma field regex. Replaced redundant `| string` in `OpsSnapshotEnvironment` union with branded `(string & {})` to keep autocomplete on the canonical literals. Replaced invalid `void | Promise | Thenable` union in preflight `actions[].run` signature with `Promise<void> | Thenable<unknown> | undefined`.
+
 ## [1.1.0] - 2026-05-04
 
 ### Added
@@ -44,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI wrapper: `geodesic analyze`.
 - MIT license.
 
-[Unreleased]: https://github.com/direwulfco/geodesic/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/direwulfco/geodesic/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/direwulfco/geodesic/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/direwulfco/geodesic/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/direwulfco/geodesic/releases/tag/v1.0.0

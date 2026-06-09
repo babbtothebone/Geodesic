@@ -12,6 +12,7 @@ import { detectAuth } from './auth-detector.js';
 import { detectCiCd } from './cicd-detector.js';
 import { detectTests } from './test-detector.js';
 import { findPiiCandidates } from './pii-candidates.js';
+import { extractSchema } from './schema-extractor.js';
 import { getHeadCommit, getRepoName } from './git-utils.js';
 
 export function harvest(
@@ -63,6 +64,7 @@ export function harvest(
   const cicd = detectCiCd(repoPath, flatFiles);
   const tests = detectTests(flatFiles, dependencies);
   const piiCandidateLocations = findPiiCandidates(repoPath, flatFiles);
+  const harvestedSchema = extractSchema(repoPath, flatFiles);
 
   if (apiRoutes.length > 0) {
     onEvent({
@@ -85,6 +87,14 @@ export function harvest(
       type: 'discovery_finding',
       phase: 2,
       message: `Auth: ${auth.patterns.map(p => p.type).join(' + ')}`,
+    });
+  }
+
+  if (harvestedSchema.summary.tableCount > 0) {
+    onEvent({
+      type: 'discovery_finding',
+      phase: 2,
+      message: `Schema: ${String(harvestedSchema.summary.tableCount)} tables · ${String(harvestedSchema.summary.columnCount)} columns · ${String(harvestedSchema.summary.piiColumnCount)} PII / ${String(harvestedSchema.summary.phiColumnCount)} PHI by name`,
     });
   }
 
@@ -126,6 +136,7 @@ export function harvest(
     cicd,
     tests,
     piiCandidateLocations,
+    harvestedSchema,
   };
 }
 

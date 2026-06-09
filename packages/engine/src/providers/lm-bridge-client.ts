@@ -48,6 +48,31 @@ export interface LmBridge {
 }
 
 const REQUEST_TIMEOUT_MS = 8 * 60_000;
+const MAX_TRANSPORT_RETRIES = 2;
+
+/**
+ * Distinguishes transport-layer failures (socket reset, connection drop,
+ * abort) from real server responses. Used to gate the in-flight retry
+ * inside `complete()`. We deliberately do NOT match on the literal string
+ * "fetch failed" alone — that is too broad and would mask real errors.
+ */
+function isTransientTransportError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  if (err.name === 'AbortError') return false; // Caller-initiated; do not retry.
+  const msg = err.message.toLowerCase();
+  // undici / Node fetch wraps low-level socket errors in a generic
+  // "fetch failed" TypeError with the real cause on `err.cause`.
+  if (msg.includes('econnreset')) return true;
+  if (msg.includes('socket hang up')) return true;
+  if (msg.includes('econnrefused')) return false; // Server is actually down.
+  const cause = (err as { cause?: unknown }).cause;
+  if (cause && typeof cause === 'object') {
+    const code = (cause as { code?: string }).code;
+    if (code === 'ECONNRESET' || code === 'UND_ERR_SOCKET') return true;
+  }
+  // Generic "fetch failed" with no cause we recognise: retry once, conservatively.
+  return msg === 'fetch failed';
+}
 
 export class HttpLmBridge implements LmBridge {
   constructor(private readonly port: number, private readonly token: string) {}
@@ -61,30 +86,47 @@ export class HttpLmBridge implements LmBridge {
   }
 
   async complete(req: LmBridgeCompleteRequest): Promise<LmBridgeCompleteResponse> {
-    const controller = new AbortController();
-    const timer = setTimeout(() => { controller.abort(); }, REQUEST_TIMEOUT_MS);
-    try {
-      const resp = await fetch(this.url('/lm/complete'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
-        body: JSON.stringify(req),
-        signal: controller.signal,
-      });
-      const text = await resp.text();
-      if (!resp.ok) {
-        let parsed: LmBridgeErrorBody | null = null;
-        try { parsed = JSON.parse(text) as LmBridgeErrorBody; } catch { /* keep raw */ }
-        const err = new BridgeHttpError(
-          parsed?.error.code ?? 'UNKNOWN',
-          parsed?.error.message ?? (text || `HTTP ${String(resp.status)}`),
-          parsed?.error.retryable ?? false,
-        );
-        throw err;
+    // Retry transient transport failures (undici socket reset, connection drop)
+    // up to MAX_TRANSPORT_RETRIES times. We hit these in practice when the
+    // synthesis pipeline fires 3 calls in parallel (arch-map + skill-file +
+    // gap-report integration phase) and the bridge HTTP server occasionally
+    // races on socket teardown. Application errors (4xx/5xx with a structured
+    // body) are NOT retried here — the server already decided.
+    let lastErr: unknown;
+    for (let attempt = 0; attempt <= MAX_TRANSPORT_RETRIES; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => { controller.abort(); }, REQUEST_TIMEOUT_MS);
+      try {
+        const resp = await fetch(this.url('/lm/complete'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+          body: JSON.stringify(req),
+          signal: controller.signal,
+        });
+        const text = await resp.text();
+        if (!resp.ok) {
+          let parsed: LmBridgeErrorBody | null = null;
+          try { parsed = JSON.parse(text) as LmBridgeErrorBody; } catch { /* keep raw */ }
+          throw new BridgeHttpError(
+            parsed?.error.code ?? 'UNKNOWN',
+            parsed?.error.message ?? (text || `HTTP ${String(resp.status)}`),
+            parsed?.error.retryable ?? false,
+          );
+        }
+        return JSON.parse(text) as LmBridgeCompleteResponse;
+      } catch (err) {
+        lastErr = err;
+        // BridgeHttpError = real server response; never retry here.
+        if (err instanceof BridgeHttpError) throw err;
+        if (!isTransientTransportError(err) || attempt === MAX_TRANSPORT_RETRIES) throw err;
+        // Tiny backoff (50ms, 150ms, 350ms) before retrying.
+        await new Promise<void>(resolve => setTimeout(resolve, 50 * Math.pow(3, attempt)));
+      } finally {
+        clearTimeout(timer);
       }
-      return JSON.parse(text) as LmBridgeCompleteResponse;
-    } finally {
-      clearTimeout(timer);
     }
+    // Unreachable — the loop either returns or throws — but TS needs it.
+    throw lastErr;
   }
 
   async healthCheck(): Promise<{ ok: boolean; message: string }> {

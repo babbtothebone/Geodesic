@@ -27,7 +27,7 @@ const BINARY_EXTENSIONS = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.ico', '.svg',
   '.woff', '.woff2', '.ttf', '.otf', '.eot',
   '.mp4', '.mp3', '.wav', '.ogg', '.webm',
-  '.zip', '.tar', '.gz', '.bz2', '.7z', '.rar',
+  '.zip', '.tar', '.gz', '.bz2', '.7z', '.rar', '.vsix', '.jar', '.war',
   '.pdf', '.docx', '.xlsx', '.pptx',
   '.exe', '.dll', '.so', '.dylib', '.wasm',
   '.lock', // lockfiles — handled separately

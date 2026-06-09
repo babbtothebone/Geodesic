@@ -68,19 +68,20 @@ export function registerBaselineCommand(program: Command): void {
         process.exit(2);
       }
 
-      let bl;
+      let bl: ReturnType<typeof loadBaselineFile>;
       try {
         bl = loadBaselineFile(blAbs);
       } catch (err) {
         console.error(err instanceof Error ? err.message : String(err));
         process.exit(1);
+        return;
       }
 
       console.log(`[geodesic] harvesting ${repoAbs}…`);
       const h: HarvestResult = harvest(repoAbs);
       console.log(`[geodesic]   ${String(h.meta.totalFiles)} files, ${String(h.apiRoutes.length)} routes`);
 
-      const report = detectDrift(bl!, h);
+      const report = detectDrift(bl, h);
       console.log(
         `[geodesic] drift: ${String(report.counts.total)} findings ` +
           `(P0: ${String(report.counts.p0)} · P1: ${String(report.counts.p1)} · P2: ${String(report.counts.p2)})`,

@@ -1,4 +1,5 @@
 import * as net from 'net';
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -40,11 +41,19 @@ function findFreePort(): Promise<number> {
 
 async function main(): Promise<void> {
   const port = await findFreePort();
-  const server = createServer(GEODESIC_VERSION);
+  // Per-process random secret. Mirrors the LM bridge pattern: any caller that wants to
+  // hit the engine HTTP API must present this token via the X-Geodesic-Token header.
+  // 24 bytes = 192 bits of entropy, hex-encoded for env-var-safe transport.
+  const authToken = crypto.randomBytes(24).toString('hex');
+  const server = createServer(GEODESIC_VERSION, authToken);
 
   server.listen(port, '127.0.0.1', () => {
-    // Write port to stdout so engine manager can capture it
+    // Emit port AND token to stdout so the engine manager can capture both and inject
+    // them into the EngineClient. The parent process (VS Code extension or CLI) is the
+    // only consumer of stdout, and stdout is closed to other processes via the spawn's
+    // stdio: ['ignore', 'pipe', 'pipe'] contract.
     process.stdout.write(`GEODE_ENGINE_PORT=${String(port)}\n`);
+    process.stdout.write(`GEODE_ENGINE_TOKEN=${authToken}\n`);
   });
 
   server.on('error', (err) => {

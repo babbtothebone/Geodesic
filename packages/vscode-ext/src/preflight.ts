@@ -40,7 +40,7 @@ interface CheckResult {
   id: string;
   ok: boolean;
   message?: string;
-  actions?: Array<{ label: string; run: () => void | Promise<void> | Thenable<unknown> }>;
+  actions?: Array<{ label: string; run: () => Promise<void> | Thenable<unknown> | undefined }>;
 }
 
 export async function runPreflight(opts: PreflightOptions): Promise<CheckResult[]> {

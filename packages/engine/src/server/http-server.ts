@@ -1,4 +1,5 @@
 import * as http from 'http';
+import * as crypto from 'crypto';
 import type { GeodesicConfig } from '@geodesic/types';
 import type { CrystalSyncConfig } from '../crystal/github-sync.js';
 import { loadConfig } from '../providers/index.js';
@@ -51,9 +52,33 @@ function parseJsonBody(raw: string): Record<string, unknown> | null {
   try { return JSON.parse(raw) as Record<string, unknown>; } catch { return null; }
 }
 
-async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse, serverVersion: string): Promise<void> {
+/**
+ * Constant-time string comparison via `crypto.timingSafeEqual`. Required so that an
+ * attacker probing the loopback port can't infer the token from response timings.
+ */
+function timingSafeEqualStr(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
+
+/**
+ * True when the request carries a valid `X-Geodesic-Token` header. The constant-time
+ * comparison short-circuits on length mismatch via `timingSafeEqualStr`.
+ *
+ * `GET /health` is intentionally exempt from this check (preflight in the VS Code
+ * extension hits it before the token has been wired through, and /health leaks nothing
+ * more than the engine version, which is already public).
+ */
+function isAuthorized(req: http.IncomingMessage, expectedToken: string): boolean {
+  const presented = req.headers['x-geodesic-token'];
+  return typeof presented === 'string' && timingSafeEqualStr(presented, expectedToken);
+}
+
+async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse, serverVersion: string, authToken: string): Promise<void> {
     if (req.method === 'OPTIONS') {
-      res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST', 'Access-Control-Allow-Headers': 'Content-Type' });
+      res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST', 'Access-Control-Allow-Headers': 'Content-Type,X-Geodesic-Token' });
       res.end();
       return;
     }
@@ -62,9 +87,21 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     const method = req.method ?? 'GET';
 
     try {
-      // GET /health
+      // GET /health — intentionally unauthenticated. Preflight in the VS Code extension
+      // probes this before the engine token has been propagated, and the response carries
+      // nothing more than the public engine version. Every other route below requires
+      // the X-Geodesic-Token header.
       if (method === 'GET' && url === '/health') {
         json(res, 200, { ok: true, version: serverVersion });
+        return;
+      }
+
+      // Token gate for everything else. Loopback binding is not sufficient on its own:
+      // any local process (other apps, dev-tool extensions, browser-bound JS via SSRF)
+      // can reach 127.0.0.1:<port>. The shared secret ensures only our extension and
+      // CLI (which received the token via stdout at spawn time) can invoke routes.
+      if (!isAuthorized(req, authToken)) {
+        json(res, 401, { error: 'Missing or invalid X-Geodesic-Token header' });
         return;
       }
 
@@ -211,8 +248,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     }
 }
 
-export function createServer(serverVersion: string): http.Server {
+export function createServer(serverVersion: string, authToken: string): http.Server {
   return http.createServer((req, res) => {
-    void handleRequest(req, res, serverVersion);
+    void handleRequest(req, res, serverVersion, authToken);
   });
 }

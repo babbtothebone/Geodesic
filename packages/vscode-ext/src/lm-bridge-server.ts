@@ -35,7 +35,19 @@ import * as vscode from 'vscode';
  * This is a per-user resource — the bridge is bound to 127.0.0.1 and gated by a per-launch
  * token, so cross-user collisions are not a concern.
  */
-const LOCKFILE_PATH = path.join(os.homedir(), '.geodesic', 'bridge.json');
+/**
+ * Resolves the lockfile path against the **current** value of `os.homedir()` on every call.
+ *
+ * We deliberately do NOT cache this at module load. `os.homedir()` reads `$HOME` lazily,
+ * and anything that mutates HOME after this module is first imported (debug-attach flows
+ * that re-export it, shells that re-init env vars, a `su` mid-session, or our own test
+ * suite that sandboxes HOME to a tmpdir) would otherwise see the bridge writing to a
+ * stale path. A function getter costs ~1us per bridge lifecycle and eliminates an entire
+ * class of "lockfile written to the wrong place" failures.
+ */
+function lockfilePath(): string {
+  return path.join(os.homedir(), '.geodesic', 'bridge.json');
+}
 
 interface BridgeLockfile {
   port: number;
@@ -45,9 +57,10 @@ interface BridgeLockfile {
 }
 
 function readLockfile(): BridgeLockfile | null {
+  const p = lockfilePath();
   try {
-    if (!fs.existsSync(LOCKFILE_PATH)) return null;
-    const raw = fs.readFileSync(LOCKFILE_PATH, 'utf8');
+    if (!fs.existsSync(p)) return null;
+    const raw = fs.readFileSync(p, 'utf8');
     const parsed = JSON.parse(raw) as Partial<BridgeLockfile>;
     if (typeof parsed.port !== 'number' || typeof parsed.token !== 'string' || typeof parsed.pid !== 'number') return null;
     return parsed as BridgeLockfile;
@@ -55,14 +68,15 @@ function readLockfile(): BridgeLockfile | null {
 }
 
 function writeLockfile(info: BridgeLockfile): void {
+  const p = lockfilePath();
   try {
-    fs.mkdirSync(path.dirname(LOCKFILE_PATH), { recursive: true });
-    fs.writeFileSync(LOCKFILE_PATH, JSON.stringify(info, null, 2), 'utf8');
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, JSON.stringify(info, null, 2), 'utf8');
   } catch { /* non-fatal — worst case the next window can't reuse and starts its own */ }
 }
 
 function deleteLockfile(): void {
-  try { fs.unlinkSync(LOCKFILE_PATH); } catch { /* ignore */ }
+  try { fs.unlinkSync(lockfilePath()); } catch { /* ignore */ }
 }
 
 /** True if a process with the given PID is currently alive. */
@@ -118,7 +132,8 @@ export interface LmBridgeServerInfo {
 export class LmBridgeServer implements vscode.Disposable {
   private server: http.Server | null = null;
   private _port = 0;
-  private readonly _token = crypto.randomBytes(24).toString('hex');
+  // Not readonly — followers replace this with the owner's token in start().
+  private _token = crypto.randomBytes(24).toString('hex');
 
   get port(): number { return this._port; }
   get token(): string { return this._token; }
@@ -146,7 +161,7 @@ export class LmBridgeServer implements vscode.Disposable {
         // Reuse — this window is a follower. Use the owner's port + token; don't bind a server.
         this._port = existing.port;
         // Replace our random token with the owner's so engines we spawn authenticate correctly.
-        (this as { _token: string })._token = existing.token;
+        this._token = existing.token;
         this._isOwner = false;
         return this.info;
       }
@@ -156,7 +171,7 @@ export class LmBridgeServer implements vscode.Disposable {
 
     // ── Phase 2: bind our own HTTP server and become the owner ──
     const server = http.createServer((req, res) => {
-      this._handle(req, res).catch(err => {
+      this._handle(req, res).catch((err: unknown) => {
         sendError(res, 500, 'UNKNOWN', err instanceof Error ? err.message : String(err), false);
       });
     });
@@ -363,7 +378,7 @@ async function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
       const raw = Buffer.concat(chunks).toString('utf8');
       if (!raw) { resolve(null); return; }
       try { resolve(JSON.parse(raw)); }
-      catch (e) { reject(e instanceof Error ? e : new Error(String(e))); }
+      catch (e: unknown) { reject(e instanceof Error ? e : new Error(String(e))); }
     });
     req.on('error', reject);
   });

@@ -27,7 +27,7 @@ describe('sidebar — copilot dropdown rendering', () => {
   it('copilot comes before anthropic in the dropdown (first option)', () => {
     const match = /for \(const p of \[([^\]]+)\]/.exec(SIDEBAR_SOURCE);
     expect(match).not.toBeNull();
-    const providerList = match![1];
+    const providerList = match![1] ?? '';
     const copilotIdx = providerList.indexOf("'copilot'");
     const anthropicIdx = providerList.indexOf("'anthropic'");
     expect(copilotIdx).toBeGreaterThan(-1);
