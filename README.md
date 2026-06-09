@@ -230,9 +230,3 @@ npx vsce package --no-dependencies
 MIT — see [LICENSE](LICENSE)
 
 ---
-
-> Geodesic is currently listed on the VS Code Marketplace and Open VSX as **Geodesic Topo** while we wait for Microsoft to release the reserved `Geodesic` name. Same extension, same publisher (`direwulfco`), same code.
-
----
-
-*Built by [Dire Wulf](https://github.com/direwulfco).*
